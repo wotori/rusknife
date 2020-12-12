@@ -1,7 +1,11 @@
 from os import walk
 from os import path
-import time
 from exif import Image
+from datetime import datetime
+
+from items.folder import Folder
+from items.folders_tree import FoldersTree
+from items.media_file import MediaFile
 
 
 class Walker:
@@ -21,10 +25,11 @@ class Walker:
             for media_file_name in item[2]:
                 media_file_path = path.join(cur_path, media_file_name)
                 media_datetime = self.get_img_date(media_file_path, media_file_name)
-                self.data_bag.append({"media_root": cur_path,
-                                      'media_name': media_file_name,
-                                      'media_path': media_file_path,
-                                      "media_data_created": media_datetime})
+                file = MediaFile(cur_path,
+                                 media_file_name,
+                                 media_file_path,
+                                 media_datetime)
+                self.data_bag.append(file)
 
     def get_img_date(self, media_file_path, media_file_name):
         media_source = media_file_name[:3]
@@ -37,18 +42,30 @@ class Walker:
                     return datetime
             else:
                 return None
-        except: #mostly files that was saved in iPhone gallery (iOS)
+        except:  # mostly files that was saved in gallery (iOS)
             return None
 
-    def data_stracture_builder(self, media_file_name, media_file_path):
+    def generate_catalogs_tree(self, library_path_const):
+        media_file_dict: MediaFile
+        folders_list = []
+        for n, media_file_dict in enumerate(self.data_bag):
+            if media_file_dict.media_data_created:
+                date = media_file_dict.media_data_created
+                date_obj = datetime.strptime(date, '%Y:%m:%d %H:%M:%S')
+                datetime_folder_name = date_obj.date().strftime("%Y_%m_%d")
+                if datetime_folder_name not in folders_list:
+                    folders_list.append(datetime_folder_name)
+                    folder = Folder(folder_name=datetime_folder_name,
+                                    folder_path=library_path_const)
+                    FoldersTree.folders.append(folder)
+
+    def data_stracture_builder(self, media_file_name):
         media_source = media_file_name[:3]
         media_extention = media_file_name[-3:]
 
         # strategy for camera photos
         if media_source == "IMG" and media_extention == "JPG":
-            with open(media_file_path, "rb") as media_file:
-                image = Image(media_file)
-                image_datetime = image.datetime_digitized
+            pass
 
         # strategy for camera video
         elif media_source == "IMG" and media_extention == "MP4":
@@ -63,10 +80,5 @@ class Walker:
             pass
 
         else:
-            # strategy for pos processed media
+            # strategy for pos processed media that was saved from chats, rendered e.t.c.
             pass
-
-    def media_builder(self):
-        for file in self.data_bag:
-            with open(file, 'rb'):
-                self.objects_bag.append(Image(file))
