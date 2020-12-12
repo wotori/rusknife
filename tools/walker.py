@@ -20,9 +20,25 @@ class Walker:
             cur_path = item[0]
             for media_file_name in item[2]:
                 media_file_path = path.join(cur_path, media_file_name)
+                media_datetime = self.get_img_date(media_file_path, media_file_name)
                 self.data_bag.append({"media_root": cur_path,
-                                      'file_name': media_file_name,
-                                      'media_file_path': media_file_path})
+                                      'media_name': media_file_name,
+                                      'media_path': media_file_path,
+                                      "media_data_created": media_datetime})
+
+    def get_img_date(self, media_file_path, media_file_name):
+        media_source = media_file_name[:3]
+        media_extention = media_file_name[-3:]
+        try:
+            if media_extention[-3:] == "JPG" and media_source == "IMG":
+                with open(media_file_path, 'rb') as img_file:
+                    image = Image(img_file)
+                    datetime = image.datetime_digitized
+                    return datetime
+            else:
+                return None
+        except: #mostly files that was saved in iPhone gallery (iOS)
+            return None
 
     def data_stracture_builder(self, media_file_name, media_file_path):
         media_source = media_file_name[:3]
