@@ -45,7 +45,7 @@ class Walker:
         except:  # mostly files that was saved in gallery (iOS)
             return None
 
-    def generate_catalogs_tree(self, library_path_const):
+    def generate_catalogs_tree(self):
         media_file_dict: MediaFile
         folders_list = []
         for n, media_file_dict in enumerate(self.data_bag):
@@ -55,9 +55,7 @@ class Walker:
                 datetime_folder_name = date_obj.date().strftime("%Y_%m_%d")
                 if datetime_folder_name not in folders_list:
                     folders_list.append(datetime_folder_name)
-                    folder = Folder(folder_name=datetime_folder_name,
-                                    folder_path=library_path_const)
-                    FoldersTree.folders.append(folder)
+        FoldersTree.folders_names = folders_list
 
     def data_stracture_builder(self, media_file_name):
         media_source = media_file_name[:3]
