@@ -1,22 +1,25 @@
+import os
+import shutil
 from os import walk
 from os import path
 from exif import Image
-from datetime import datetime
+import datetime
 
 from items.folders_tree import FoldersTree
 from items.media_file import MediaFile
+from tools.walker_interface import WalkerInterface
 
 
-class Walker:
+class WalkerDesktop(WalkerInterface):
 
-    def __init__(self, media_root_path):
-        self.task_path = media_root_path
-        self.data_bag = []
-        self.unique_data_list = []
+    def __init__(self, media_root_path, library):
+        super().__init__(media_root_path, library)
 
     def collect_data(self):
         """
         collecting all data across root catalog
+        move screenshots and other files to specific folder in library
+        store camera files to dict for further postprocess with self.first_preprocess_file(file) method
         """
         for item in walk(self.task_path):
             if not item[2]:
@@ -29,7 +32,59 @@ class Walker:
                                  media_file_name,
                                  media_file_path,
                                  media_datetime)
-                self.data_bag.append(file)
+                self.first_preprocess_file(file)
+
+    def first_preprocess_file(self, file):
+        """
+        :param file:
+        extract screenshots and exported media and move them to specific folder
+        camera media files add to WalkerDesktop data_bag attribute for further processing
+        """
+        media_source = file.media_name[:3]
+        media_extention = file.media_name[-3:]
+        if media_source == "IMG" and media_extention == "PNG":
+            self.save_screenshot_media(file)
+        elif media_source != "IMG":
+            self.save_other_media(file)
+        else:
+            self.data_bag.append(file)
+
+    def save_screenshot_media(self, file):
+        # TODO: Find and destry this bug
+        """ TODO: check this description in PEP8 styling
+        discription:
+        proceed png files
+
+        note:
+        this could have a bug that I coldn't find.
+        It writes all png to single file with folder name
+        """
+        import_date = str(datetime.date.today())
+        screenshots_path = os.path.join(self.library_path, 'screenshots')
+        screenshots_import_date_folder_path = os.path.join(self.library_path, 'screenshots', import_date)
+
+        # create folders structure if not already created
+        if "screenshots" not in os.listdir(self.library_path):
+            os.mkdir(screenshots_path)
+        elif import_date not in os.listdir(screenshots_path):
+            os.mkdir(screenshots_import_date_folder_path)
+
+        # move file
+        shutil.move(file.media_path, screenshots_import_date_folder_path)
+
+    def save_other_media(self, file):
+        import_date = str(datetime.date.today())
+        other_media_path = os.path.join(self.library_path, 'other_media')
+        other_media_import_date_folder_path = os.path.join(self.library_path, 'other_media', import_date)
+
+        # create folders structure if not already created
+        if "other_media" not in os.listdir(self.library_path):
+            os.mkdir(other_media_path)
+        elif import_date not in os.listdir(other_media_path):
+            os.mkdir(other_media_import_date_folder_path)
+
+        # move file
+        shutil.move(file.media_path, other_media_import_date_folder_path)
 
     def get_img_date(self, media_file_path, media_file_name):
         media_source = media_file_name[:3]
@@ -51,8 +106,7 @@ class Walker:
         for n, media_file_dict in enumerate(self.data_bag):
             if media_file_dict.media_data_created:
                 date = media_file_dict.media_data_created
-                date_obj = datetime.strptime(date, '%Y:%m:%d %H:%M:%S')
-                datetime_folder_name = date_obj.date().strftime("%Y_%m_%d")
+                datetime_folder_name = datetime.datetime.strftime(date, '%Y:%m:%d %H:%M:%S')
                 if datetime_folder_name not in folders_list:
                     folders_list.append(datetime_folder_name)
         self.unique_data_list = folders_list
