@@ -3,7 +3,6 @@ from os import path
 from exif import Image
 from datetime import datetime
 
-from items.folder import Folder
 from items.folders_tree import FoldersTree
 from items.media_file import MediaFile
 
@@ -13,6 +12,7 @@ class Walker:
     def __init__(self, media_root_path):
         self.task_path = media_root_path
         self.data_bag = []
+        self.unique_data_list = []
 
     def collect_data(self):
         """
@@ -55,28 +55,48 @@ class Walker:
                 datetime_folder_name = date_obj.date().strftime("%Y_%m_%d")
                 if datetime_folder_name not in folders_list:
                     folders_list.append(datetime_folder_name)
-        FoldersTree.folders_names = folders_list
+        self.unique_data_list = folders_list
+        FoldersTree.folders_names = folders_list  # SOLID - S. mb we don't need FoldersTree here
 
-    def data_stracture_builder(self, media_file_name):
-        media_source = media_file_name[:3]
-        media_extention = media_file_name[-3:]
+    # this interface should split media data into groups TODO: finish this later
+    def split_to_groups_by_date(self):
+        structure = {}
+        data_list = []
+        in_point = 0
+        item: MediaFile
+        previous_date = False
+        for n, item in enumerate(self.data_bag):
+            date = item.media_data_created
+            if date and date not in data_list:
+                if previous_date:
+                    structure[previous_date].append(self.data_bag[in_point: n - 1])
+                data_list.append(date)
+                structure[date] = self.data_bag[in_point:n]
+                in_point = n + 1
+                previous_date = date
 
-        # strategy for camera photos
-        if media_source == "IMG" and media_extention == "JPG":
-            pass
+        return structure
 
-        # strategy for camera video
-        elif media_source == "IMG" and media_extention == "MP4":
-            pass
+        def data_stracture_builder(self, media_file_name):
+            media_source = media_file_name[:3]
+            media_extention = media_file_name[-3:]
 
-        # strategy for editing AAE file
-        elif media_source == "IMG" and media_extention == "AAE":
-            pass
+            # strategy for camera photos
+            if media_source == "IMG" and media_extention == "JPG":
+                pass
 
-        # strategy for screenshots
-        elif media_source == "IMG" and media_extention == "PNG":
-            pass
+            # strategy for camera video
+            elif media_source == "IMG" and media_extention == "MP4":
+                pass
 
-        else:
-            # strategy for pos processed media that was saved from chats, rendered e.t.c.
-            pass
+            # strategy for editing AAE file
+            elif media_source == "IMG" and media_extention == "AAE":
+                pass
+
+            # strategy for screenshots
+            elif media_source == "IMG" and media_extention == "PNG":
+                pass
+
+            else:
+                # strategy for pos processed media that was saved from chats, rendered e.t.c.
+                pass

@@ -9,3 +9,6 @@ class MediaFile:
         self.media_name = media_name
         self.media_path = media_path
         self.media_data_created = media_data_created
+
+    def __repr__(self):
+        return self.media_name
